@@ -1,55 +1,48 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent)) # Ensure project root is in path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 data_dir = Path(__file__).parent.parent / "data"
 
 import pandas as pd
 
 from data.data_extraction import tau_rois
 
-label_map = { # convert data labels to their corresponding time in years
-    "y1": 1,
-    "y2": 2,
-    "y4": 4,
+label_map: dict[str, int] = {
+    "y1":    1,
+    "y2":    2,
+    "y4":    4,
     "4_m12": 1,
     "4_m24": 2,
 }
 
-# Helper function to convert VISCODE to years
-def viscode_to_years(viscode):
+
+def viscode_to_years(viscode: str) -> int | None:
     if viscode in ["bl", "init", "4_bl", "4_init"]:
         return 0
-    if viscode in label_map:
-        return label_map[viscode]
-    return None
+    return label_map.get(viscode)
 
-def extract_data():
-    # Load datasets
+
+def extract_data() -> pd.DataFrame:
+    """Load longitudinal tau PET data with diagnosis labels.
+
+    Filters to subjects with ≥3 timepoints and binary diagnosis (CN or AD).
+    Returns a DataFrame with columns: RID, time, tau ROIs, y.
+    """
     tau = pd.read_csv(data_dir / "UCBERKELEY_TAU_6MM.csv")
     dx  = pd.read_csv(data_dir / "DXSUM.csv")
 
-    # Create new column 'time' from VISCODE and drop rows with missing ROIs
     tau["time"] = tau["VISCODE"].apply(viscode_to_years)
-    tau = tau.dropna(subset=tau_rois)
+    tau = tau.dropna(subset=tau_rois + ["time"])
 
-    # Drop missing values in ROIs and collapse duplicates
     tau = tau[["RID", "time"] + tau_rois]
-    tau = (tau.groupby(["RID", "time"], as_index=False)[tau_rois].mean())
+    tau = tau.groupby(["RID", "time"], as_index=False)[tau_rois].mean()
 
-    # Count timepoints per subject
-    tp_counts = tau.groupby("RID")["time"].nunique()
+    valid_rids = tau.groupby("RID")["time"].nunique()
+    tau = tau[tau["RID"].isin(valid_rids[valid_rids >= 3].index)]
 
-    # Keep subjects with at least 3 timepoints (to ensure more accurate results in how tau progresses)
-    valid_rids = tp_counts[tp_counts >= 3].index
-    tau = tau[tau["RID"].isin(valid_rids)]
-    
-    # Keep only subjects with diagnosis of Normal (1) or Alzheimer's (3) at baseline (no MCI = mild cognitive impairment)
     dx_bl = dx[dx["VISCODE"] == "bl"][["RID", "DIAGNOSIS"]]
-    dx_bl = dx_bl[dx_bl["DIAGNOSIS"].isin([1, 3])]
+    dx_bl = dx_bl[dx_bl["DIAGNOSIS"].isin([1, 3])].copy()
     dx_bl["y"] = dx_bl["DIAGNOSIS"].map({1: 0, 3: 1})
 
-    # Merge with diagnosis data to create final dataset
-    tau = tau.merge(dx_bl[["RID", "y"]], on="RID", how="inner")
-    
-    return tau
+    return tau.merge(dx_bl[["RID", "y"]], on="RID", how="inner")

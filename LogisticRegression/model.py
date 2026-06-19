@@ -1,108 +1,126 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent)) # Ensure project root is in path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from sklearn.pipeline import Pipeline
 
 from data.data_extraction import extract_data, amy_rois, tau_rois
 
-def model():
-    amy_data, tau_data, combo_data = extract_data() #amy_data and tai_data used only for validation if necessary
+RESULTS_DIR = Path(__file__).parent.parent / "results"
+PLOTS_DIR = RESULTS_DIR / "plots"
 
-    # Input features and target variable
-    X_amy = combo_data[[col + '_x' for col in amy_rois]]  
-    X_tau = combo_data[[col + '_y' for col in tau_rois]]
-    X_combo = pd.concat([X_amy, X_tau], axis=1)
-    y = combo_data['y']
 
-    # Scale features (important for logistic regression)
-    scaler = StandardScaler()
-    X_amy_scaled = scaler.fit_transform(X_amy)
-    X_tau_scaled = scaler.fit_transform(X_tau)
-    X_combo_scaled = scaler.fit_transform(X_combo)
+def run_models(X: np.ndarray, y: pd.Series, feature_set: str) -> dict:
+    """Train LogisticRegression and RandomForest on a feature set.
 
-    # Split into training and test sets
-    X_train_amy, X_test_amy, y_train, y_test = train_test_split(X_amy_scaled, y, test_size=0.2, random_state=42, stratify=y)
-    X_train_tau, X_test_tau, _, _ = train_test_split(X_tau_scaled, y, test_size=0.2, random_state=42, stratify=y)
-    X_train_combo, X_test_combo, _, _ = train_test_split(X_combo_scaled, y, test_size=0.2, random_state=42, stratify=y)
+    Performs an 80/20 stratified train/test split, then 5-fold CV on the
+    training portion. Returns accuracy, CV AUC (mean ± std), and test AUC.
+    Scaler is fit only on training data to prevent leakage.
+    """
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
+    logreg_pipe = Pipeline([
+        ("scaler", StandardScaler()),
+        ("model", LogisticRegression(max_iter=1000)),
+    ])
+    rf_pipe = Pipeline([
+        ("scaler", StandardScaler()),
+        ("model", RandomForestClassifier(n_estimators=200, random_state=42)),
+    ])
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     results = {}
-    results["amyloid"] = {}
-    results["tau"] = {}
-    results["combined"] = {}
 
-    coefficients = {} # logistic regression coefficients for feature importance in AD prediction
+    for pipe, name in [(logreg_pipe, "LogisticRegression"), (rf_pipe, "RandomForest")]:
+        cv_aucs = cross_val_score(pipe, X_train, y_train, cv=cv, scoring="roc_auc")
 
-    logreg = LogisticRegression(max_iter=1000)
-    rf = RandomForestClassifier(n_estimators=200, random_state=42)
-    models = [(logreg, "LogisticRegression"), (rf, "RandomForest")]
+        pipe.fit(X_train, y_train)
+        y_pred = pipe.predict(X_test)
+        y_prob = pipe.predict_proba(X_test)[:, 1]
 
-    for mod, name in models:
-        mod.fit(X_train_amy, y_train) # train
-        y_pred_amy = mod.predict(X_test_amy) # test
-        y_proba = mod.predict_proba(X_test_amy)[:,1]
-        results["amyloid"][name] = {
-            "accuracy": accuracy_score(y_test, y_pred_amy),
-            "roc_auc": roc_auc_score(y_test, y_proba),
-            "classification_report": classification_report(y_test, y_pred_amy)
+        results[name] = {
+            "feature_set": feature_set,
+            "cv_auc_mean": round(float(cv_aucs.mean()), 4),
+            "cv_auc_std": round(float(cv_aucs.std()), 4),
+            "test_accuracy": round(float(accuracy_score(y_test, y_pred)), 4),
+            "test_auc": round(float(roc_auc_score(y_test, y_prob)), 4),
+            "classification_report": classification_report(y_test, y_pred),
         }
-        if name == "LogisticRegression":
-            coefficients["amyloid"] = pd.DataFrame({
-                "ROI": amy_rois,
-                "coef": mod.coef_.flatten()
-            }).sort_values("coef", ascending=False)
 
-        mod.fit(X_train_tau, y_train)
-        y_pred_tau = mod.predict(X_test_tau)
-        y_proba = mod.predict_proba(X_test_tau)[:,1]
-        results["tau"][name] = {
-            "accuracy": accuracy_score(y_test, y_pred_tau),
-            "roc_auc": roc_auc_score(y_test, y_proba),
-            "classification_report": classification_report(y_test, y_pred_tau)
-        }
-        if name == "LogisticRegression":
-            coefficients["tau"] = pd.DataFrame({
-                "ROI": amy_rois,
-                "coef": mod.coef_.flatten()
-            }).sort_values("coef", ascending=False)
+    return results
 
-        mod.fit(X_train_combo, y_train)
-        y_pred_combo = mod.predict(X_test_combo)
-        y_proba = mod.predict_proba(X_test_combo)[:,1]
-        results["combined"][name] = {
-            "accuracy": accuracy_score(y_test, y_pred_combo),
-            "roc_auc": roc_auc_score(y_test, y_proba),
-            "classification_report": classification_report(y_test, y_pred_combo)
-        }
-        if name == "LogisticRegression":
-            combo_feature_names = (
-               [roi + "_amy" for roi in amy_rois] +
-               [roi + "_tau" for roi in tau_rois]
-            )
-            coefficients["combined"] = pd.DataFrame({
-                "ROI": combo_feature_names,
-                "coef": mod.coef_.flatten()
-            }).sort_values("coef", ascending=False)
-    
-    for key in results:
-        print(f"Results for {key} dataset:")
-        for model_name in results[key]:
-            print(f"    Model: {model_name}")
-            print(f"    Accuracy: {results[key][model_name]['accuracy']:.4f}")
-            print(f"    ROC AUC: {results[key][model_name]['roc_auc']:.4f}")
-            print(f"    Classification Report:\n{results[key][model_name]['classification_report']}")
 
-    print("Logistic Regression Coefficients for Feature Importance:")
+def plot_feature_importance(coefficients: dict) -> None:
+    """Save horizontal bar chart of logistic regression coefficients."""
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    _, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-    for key in coefficients:
-        print(f"  {key}:")
-        print(coefficients[key])
+    for ax, (key, df) in zip(axes, coefficients.items()):
+        colors = ["#d73027" if c > 0 else "#4575b4" for c in df["coef"]]
+        ax.barh(df["ROI"], df["coef"], color=colors)
+        ax.axvline(0, color="black", linewidth=0.8)
+        ax.set_title(f"Logistic Regression Coefficients — {key.capitalize()}")
+        ax.set_xlabel("Coefficient value")
+        ax.tick_params(axis="y", labelsize=8)
 
-model()
-    
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "logreg_feature_importance.png", dpi=150, bbox_inches="tight")
+    plt.close()
+
+
+def model() -> dict:
+    _, _, combo_data = extract_data()
+
+    X_amy   = combo_data[[col + "_x" for col in amy_rois]].values
+    X_tau   = combo_data[[col + "_y" for col in tau_rois]].values
+    X_combo = np.hstack([X_amy, X_tau])
+    y       = combo_data["y"]
+
+    all_results = {}
+    all_results["amyloid"]  = run_models(X_amy,   y, "amyloid")
+    all_results["tau"]      = run_models(X_tau,   y, "tau")
+    all_results["combined"] = run_models(X_combo, y, "combined")
+
+    # Logistic regression coefficients for feature importance plot
+    # Fit a scaler+model on the full training split for each feature set
+    coefficients = {}
+    for feature_set, X_raw, roi_names in [
+        ("amyloid",  X_amy,   amy_rois),
+        ("tau",      X_tau,   tau_rois),
+        ("combined", X_combo, [r + "_amy" for r in amy_rois] + [r + "_tau" for r in tau_rois]),
+    ]:
+        X_train, _, y_train, _ = train_test_split(X_raw, y, test_size=0.2, random_state=42, stratify=y)
+        pipe = Pipeline([("scaler", StandardScaler()), ("model", LogisticRegression(max_iter=1000))])
+        pipe.fit(X_train, y_train)
+        coefs = pipe.named_steps["model"].coef_.flatten()
+        coefficients[feature_set] = (
+            pd.DataFrame({"ROI": roi_names, "coef": coefs})
+            .sort_values("coef", ascending=True)
+        )
+
+    plot_feature_importance(coefficients)
+
+    # Print summary
+    for feature_set, models in all_results.items():
+        print(f"\nResults for {feature_set} dataset:")
+        for model_name, metrics in models.items():
+            print(f"  {model_name}: CV AUC={metrics['cv_auc_mean']:.4f} ± {metrics['cv_auc_std']:.4f} | "
+                  f"Test Accuracy={metrics['test_accuracy']:.4f} | Test AUC={metrics['test_auc']:.4f}")
+            print(f"  Classification Report:\n{metrics['classification_report']}")
+
+    return all_results
+
+
+if __name__ == "__main__":
+    model()

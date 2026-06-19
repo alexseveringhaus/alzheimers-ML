@@ -20,7 +20,6 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
 
 # macOS
 .DS_Store
@@ -28,6 +27,11 @@ env/
 # IDE
 .vscode/
 .idea/
+
+# Generated outputs (run main.py to reproduce)
+checkpoints/
+results/plots/
+results/metrics.json
 
 # Claude Code
 .claude/
