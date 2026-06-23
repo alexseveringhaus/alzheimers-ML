@@ -165,4 +165,4 @@ Data files are not included in this repository as they are governed by ADNI's da
 
 ## Motivation
 
-Alzheimer's disease affects over 55 million people worldwide and currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest in the problem — using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that matters.
+Alzheimer's disease affects over 55 million people worldwide and currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest and personal connection to the problem - using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that I'm passionate about.
