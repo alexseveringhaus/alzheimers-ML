@@ -4,6 +4,10 @@ A personal project applying machine learning to Alzheimer's disease diagnosis us
 
 **Tech stack:** Python · PyTorch · scikit-learn · pandas · NumPy · nibabel · matplotlib
 
+## Motivation
+
+Alzheimer's disease affects over 55 million people worldwide and currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest and personal connection to the problem - using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that I'm passionate about.
+
 ## Models
 
 | Model | Input | Approach |
@@ -162,7 +166,3 @@ pip install -r requirements.txt
 ```
 
 Data files are not included in this repository as they are governed by ADNI's data use agreement. Access can be requested at [adni.loni.usc.edu](https://adni.loni.usc.edu/).
-
-## Motivation
-
-Alzheimer's disease affects over 55 million people worldwide and currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest and personal connection to the problem - using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that I'm passionate about.
