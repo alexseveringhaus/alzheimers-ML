@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import joblib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,7 +17,8 @@ from sklearn.pipeline import Pipeline
 from data.data_extraction import extract_data, amy_rois, tau_rois
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
-PLOTS_DIR = RESULTS_DIR / "plots"
+PLOTS_DIR   = RESULTS_DIR / "plots"
+CKPT_DIR    = Path(__file__).parent.parent / "checkpoints"
 
 
 def run_models(X: np.ndarray, y: pd.Series, feature_set: str) -> dict:
@@ -108,6 +110,13 @@ def model() -> dict:
             pd.DataFrame({"ROI": roi_names, "coef": coefs})
             .sort_values("coef", ascending=True)
         )
+
+        # Persist the combined pipeline and SHAP background for the inference API
+        if feature_set == "combined":
+            CKPT_DIR.mkdir(parents=True, exist_ok=True)
+            joblib.dump(pipe, CKPT_DIR / "logreg_combined.joblib")
+            X_train_scaled = pipe.named_steps["scaler"].transform(X_train)
+            np.save(CKPT_DIR / "shap_background.npy", X_train_scaled[:100])
 
     plot_feature_importance(coefficients)
 

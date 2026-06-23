@@ -1,8 +1,16 @@
 # ML Research Project: Alzheimer's Disease Classification
 
-A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance.
+A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance. The best-performing model is deployed as a REST API with a live interactive dashboard.
 
-**Tech stack:** Python · PyTorch · scikit-learn · pandas · NumPy · nibabel · matplotlib
+**Tech stack:** Python · FastAPI · Streamlit · PyTorch · scikit-learn · SHAP · pandas · NumPy · nibabel · Docker
+
+## Live Demo
+
+| Service | URL |
+|---------|-----|
+| Interactive Dashboard | *Deploy to HF Spaces — link coming soon* |
+| REST API | *Deploy to Render — link coming soon* |
+| API Docs (Swagger) | `<api-url>/docs` |
 
 ## Motivation
 
@@ -41,6 +49,19 @@ Alzheimers_ML/
 ├── main.py                         # Unified entrypoint — runs all models or a single one
 ├── requirements.txt
 ├── results.ipynb                   # Notebook: results table + plots rendered inline
+├── docker-compose.yml              # Runs API + dashboard together locally
+│
+├── api/                            # FastAPI inference service
+│   ├── main.py                     # /health, /rois, /predict endpoints
+│   ├── model_loader.py             # Cached Pipeline + SHAP explainer loader
+│   ├── schemas.py                  # Pydantic request/response models
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── dashboard/                      # Streamlit two-tab app
+│   ├── app.py                      # Tab 1: live prediction  Tab 2: research/methodology
+│   ├── requirements.txt
+│   └── Dockerfile
 │
 ├── data/
 │   ├── data_extraction.py          # Shared ETL: loads CSVs, merges on patient ID, creates binary label
@@ -63,7 +84,8 @@ Alzheimers_ML/
 │   ├── metrics.json                # Saved accuracy, CV AUC, and test AUC for all models
 │   └── plots/                      # Feature importance and training curve PNGs
 └── checkpoints/
-    └── nn_best.pt                  # Best neural network weights (saved during training)
+    ├── logreg_combined.joblib      # Trained Pipeline (committed — used by API)
+    └── shap_background.npy         # SHAP background data (committed — used by API)
 ```
 
 ## Usage
@@ -85,6 +107,25 @@ python 2D-CNN/cnn.py
 ```
 
 ## Model Details
+
+### Inference API + Dashboard
+
+**Files:** [api/](api/) · [dashboard/](dashboard/)
+
+The combined Logistic Regression is served via a **FastAPI** REST API and an interactive **Streamlit** dashboard.
+
+**API endpoints:**
+- `GET /health` — model name and test AUC
+- `GET /rois` — list of the 26 expected ROI fields
+- `POST /predict` — accepts `amyloid_suvrs` + `tau_suvrs` dicts; returns predicted class, probabilities, and 26 per-ROI **SHAP** values sorted by magnitude
+
+SHAP (`LinearExplainer`) explains each prediction by decomposing the model's output into individual ROI contributions, showing which brain regions drove the result toward AD or CN.
+
+**Dashboard tabs:**
+- **Predict** — SUVR input form → prediction card + SHAP waterfall chart
+- **Research** — model comparison table, feature importance plot, NN training curve
+
+---
 
 ### Logistic Regression + Random Forest
 
@@ -161,8 +202,28 @@ Flatten → Linear(25600→128) → ReLU → Linear(128→2)
 
 ## Setup
 
+### Run the API + dashboard locally
+
 ```bash
-pip install -r requirements.txt
+docker-compose up
 ```
 
+- API:       http://localhost:8000
+- Dashboard: http://localhost:8501
+- API docs:  http://localhost:8000/docs
+
+### Retrain the models (requires ADNI data access)
+
 Data files are not included in this repository as they are governed by ADNI's data use agreement. Access can be requested at [adni.loni.usc.edu](https://adni.loni.usc.edu/).
+
+```bash
+pip install -r requirements.txt
+python main.py          # retrain all models and regenerate checkpoints/results
+```
+
+### Run the API without Docker
+
+```bash
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload
+```
