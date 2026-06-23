@@ -1,4 +1,4 @@
-# Alzheimer's Disease Classification — ML Research Project
+# ML Research Project: Alzheimer's Disease Classification
 
 A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance.
 
