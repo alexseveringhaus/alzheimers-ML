@@ -8,9 +8,9 @@ A personal project applying machine learning to Alzheimer's disease diagnosis us
 
 | Service | URL |
 |---------|-----|
-| Interactive Dashboard | *Deploy to HF Spaces — link coming soon* |
-| REST API | *Deploy to Render — link coming soon* |
-| API Docs (Swagger) | `<api-url>/docs` |
+| Interactive Dashboard | https://huggingface.co/spaces/alexsev01/alzheimers-dashboard |
+| REST API | `https://alzheimers-ml.onrender.com` |
+| API Docs (Swagger) | `https://alzheimers-ml.onrender.com/docs` |
 
 ## Motivation
 
