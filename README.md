@@ -1,6 +1,6 @@
 # ML Research Project: Alzheimer's Disease Classification
 
-A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance. The best-performing model is deployed as a REST API with a live interactive dashboard.
+A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance (Alzheimer's Disease vs. Cognitively Normal). The best-performing model is deployed as a REST API with a live interactive dashboard.
 
 **Tech stack:** Python · FastAPI · Streamlit · PyTorch · scikit-learn · SHAP · pandas · NumPy · nibabel · Docker
 
