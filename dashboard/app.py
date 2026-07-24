@@ -98,7 +98,7 @@ def shap_chart(contributions: list[dict], predicted_class: str) -> plt.Figure:
     colors = ["#d73027" if v > 0 else "#4575b4" for v in values]
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    bars = ax.barh(rois[::-1], values[::-1], color=colors[::-1])
+    ax.barh(rois[::-1], values[::-1], color=colors[::-1])
     ax.axvline(0, color="black", linewidth=0.8)
     ax.set_xlabel("SHAP value (impact on AD probability)")
     ax.set_title(f"Top 15 ROI contributions — predicted: {predicted_class}")
@@ -151,7 +151,7 @@ with tab_predict:
                     value=AMY_DEFAULTS[roi],
                     min_value=0.0,
                     max_value=5.0,
-                    step=0.001,
+                    step=1.0,
                     format="%.4f",
                     key=f"amy_{roi}",
                 )
@@ -166,7 +166,7 @@ with tab_predict:
                     value=TAU_DEFAULTS[roi],
                     min_value=0.0,
                     max_value=5.0,
-                    step=0.001,
+                    step=1.0,
                     format="%.4f",
                     key=f"tau_{roi}",
                 )
@@ -181,10 +181,16 @@ with tab_predict:
                 response = requests.post(
                     f"{API_URL}/predict",
                     json={"amyloid_suvrs": amyloid_inputs, "tau_suvrs": tau_inputs},
-                    timeout=15,
+                    timeout=35,
                 )
                 response.raise_for_status()
                 result = response.json()
+            except requests.exceptions.Timeout:
+                st.error(
+                    "The API is still waking up (free-tier cold start). "
+                    "Wait 20–30 seconds and try again."
+                )
+                st.stop()
             except requests.exceptions.ConnectionError:
                 st.error(f"Could not connect to the API at {API_URL}. Is the server running?")
                 st.stop()
@@ -217,7 +223,9 @@ with tab_predict:
             "Red bars push the prediction toward AD; blue bars push toward CN. "
             "Magnitude reflects each ROI's influence on this specific prediction."
         )
-        st.pyplot(shap_chart(contribs, pred))
+        fig = shap_chart(contribs, pred)
+        st.pyplot(fig)
+        plt.close(fig)
 
 
 # ── TAB 2: RESEARCH ──────────────────────────────────────────────────────────
@@ -257,8 +265,8 @@ with tab_research:
                 rows.append({
                     "Model":         model_name,
                     "Feature Set":   m.get("feature_set", ""),
-                    "CV AUC":        f"{m['cv_auc_mean']:.3f} ± {m['cv_auc_std']:.3f}",
-                    "Test AUC":      f"{m['test_auc']:.3f}",
+                    "CV AUC":        f"{m['cv_auc_mean']:.3f} ± {m['cv_auc_std']:.3f}" if m.get("cv_auc_mean") is not None else "N/A",
+                    "Test AUC":      f"{m['test_auc']:.3f}" if m.get("test_auc") is not None else "N/A",
                     "Test Accuracy": f"{m['test_accuracy']:.1%}",
                 })
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)

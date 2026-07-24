@@ -32,7 +32,7 @@ class TauCNN(nn.Module):
         return self.fc2(x)
 
 
-def main() -> None:
+def main() -> dict:
     df       = extract()
     subjects = df["PTID"].unique()
 
@@ -75,7 +75,17 @@ def main() -> None:
             correct += (preds == y).sum().item()
             total   += y.size(0)
 
-    print(f"Slice-level test accuracy: {correct / total:.4f}")
+    accuracy = correct / total
+    print(f"Slice-level test accuracy: {accuracy:.4f}")
+    return {
+        "CNN": {
+            "feature_set":   "2D PET slices (slice-level accuracy)",
+            "cv_auc_mean":   None,
+            "cv_auc_std":    None,
+            "test_accuracy": round(accuracy, 4),
+            "test_auc":      None,
+        }
+    }
 
 
 if __name__ == "__main__":
