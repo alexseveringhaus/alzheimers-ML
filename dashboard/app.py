@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -57,9 +59,36 @@ TAU_DEFAULTS = {
     "CTX_INFERIORPARIETAL_SUVR":        1.2179,
 }
 
+_ROI_DISPLAY: dict[str, str] = {
+    "ROSTRALANTERIORCINGULATE": "Rostral Anterior Cingulate",
+    "CAUDALANTERIORCINGULATE":  "Caudal Anterior Cingulate",
+    "MIDDLETEMPORAL":           "Middle Temporal",
+    "INFERIORTEMPORAL":         "Inferior Temporal",
+    "POSTERIORCINGULATE":       "Posterior Cingulate",
+    "PRECUNEUS":                "Precuneus",
+    "SUPERIORFRONTAL":          "Superior Frontal",
+    "SUPERIORPARIETAL":         "Superior Parietal",
+    "LATERALOCCIPITAL":         "Lateral Occipital",
+    "FRONTALPOLE":              "Frontal Pole",
+    "ENTORHINAL":               "Entorhinal",
+    "FUSIFORM":                 "Fusiform",
+    "INFERIORPARIETAL":         "Inferior Parietal",
+}
+
 def pretty_roi(name: str) -> str:
-    """CTX_ENTORHINAL_SUVR → Entorhinal"""
-    return name.replace("CTX_", "").replace("_SUVR", "").replace("_", " ").title()
+    """Convert a raw ROI key to a human-readable label.
+
+    Handles both plain ROI names (CTX_ENTORHINAL_SUVR) and SHAP contribution
+    names that carry a modality suffix (CTX_ENTORHINAL_SUVR_amy / _tau).
+    """
+    suffix = ""
+    if name.endswith("_amy"):
+        suffix, name = " (Amy)", name[:-4]
+    elif name.endswith("_tau"):
+        suffix, name = " (Tau)", name[:-4]
+
+    key = name.replace("CTX_", "").replace("_SUVR", "")
+    return _ROI_DISPLAY.get(key, key.replace("_", " ").title()) + suffix
 
 
 # ── SHAP chart ───────────────────────────────────────────────────────────────
@@ -77,6 +106,16 @@ def shap_chart(contributions: list[dict], predicted_class: str) -> plt.Figure:
     return fig
 
 
+# ── API warm-up ──────────────────────────────────────────────────────────────
+@st.cache_data(ttl=120, show_spinner=False)
+def _ping_api(url: str) -> bool:
+    try:
+        return requests.get(f"{url}/health", timeout=10).status_code == 200
+    except Exception:
+        return False
+
+_api_ready = _ping_api(API_URL)
+
 # ════════════════════════════════════════════════════════════════════════════
 tab_predict, tab_research = st.tabs(["🔬 Predict", "📊 Research"])
 
@@ -84,6 +123,12 @@ tab_predict, tab_research = st.tabs(["🔬 Predict", "📊 Research"])
 # ── TAB 1: PREDICT ───────────────────────────────────────────────────────────
 with tab_predict:
     st.title("AD vs CN Classification")
+    if not _api_ready:
+        st.info(
+            "⏳ The inference API is warming up (free-tier cold start). "
+            "This typically takes 20–30 seconds — fill in the form and it should be ready by the time you submit.",
+            icon=None,
+        )
     st.markdown(
         "Enter PET SUVR values for 13 cortical ROIs from **amyloid** and **tau** scans. "
         "The model returns a predicted class (AD / CN), class probabilities, and a "
