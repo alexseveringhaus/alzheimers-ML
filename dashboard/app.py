@@ -282,19 +282,23 @@ with tab_research:
     if metrics_path.exists():
         raw = json.loads(metrics_path.read_text())
         rows = []
-        for section, section_data in raw.items():
-            if not isinstance(section_data, dict):
-                continue
-            for model_name, m in section_data.items():
-                if not isinstance(m, dict) or "cv_auc_mean" not in m:
-                    continue
+
+        def _collect(name: str, node: dict) -> None:
+            # A metrics leaf has test_accuracy; otherwise recurse into sub-dicts.
+            if "test_accuracy" in node:
                 rows.append({
-                    "Model":         model_name,
-                    "Feature Set":   m.get("feature_set", ""),
-                    "CV AUC":        f"{m['cv_auc_mean']:.3f} ± {m['cv_auc_std']:.3f}" if m.get("cv_auc_mean") is not None else "N/A",
-                    "Test AUC":      f"{m['test_auc']:.3f}" if m.get("test_auc") is not None else "N/A",
-                    "Test Accuracy": f"{m['test_accuracy']:.1%}",
+                    "Model":         name,
+                    "Feature Set":   node.get("feature_set", ""),
+                    "CV AUC":        f"{node['cv_auc_mean']:.3f} ± {node['cv_auc_std']:.3f}" if node.get("cv_auc_mean") is not None else "N/A",
+                    "Test AUC":      f"{node['test_auc']:.3f}" if node.get("test_auc") is not None else "N/A",
+                    "Test Accuracy": f"{node['test_accuracy']:.1%}",
                 })
+                return
+            for child_name, child in node.items():
+                if isinstance(child, dict):
+                    _collect(child_name, child)
+
+        _collect("", raw)
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
         st.info("Run `python main.py` to generate results/metrics.json.")
