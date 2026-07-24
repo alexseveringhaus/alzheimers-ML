@@ -40,7 +40,6 @@ class PredictResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     model: str
-    test_auc: float
 
 
 class RoisResponse(BaseModel):

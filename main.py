@@ -50,8 +50,7 @@ def run_cnn() -> dict:
     print("\n" + "=" * 60)
     print("2D CONVOLUTIONAL NEURAL NETWORK")
     print("=" * 60)
-    cnn.main()
-    return {}  # CNN prints its own accuracy; no structured metrics returned yet
+    return cnn.main()
 
 
 MODEL_RUNNERS = {
@@ -75,8 +74,11 @@ def print_summary(all_results: dict) -> None:
         for model_name, metrics in section_results.items():
             if not isinstance(metrics, dict):
                 continue
-            cv   = f"{metrics.get('cv_auc_mean', 0):.4f} ± {metrics.get('cv_auc_std', 0):.4f}"
-            tauc = f"{metrics.get('test_auc', 0):.4f}"
+            cv_mean = metrics.get("cv_auc_mean")
+            cv_std  = metrics.get("cv_auc_std")
+            cv   = f"{cv_mean:.4f} ± {cv_std:.4f}" if cv_mean is not None else "N/A"
+            tauc_val = metrics.get("test_auc")
+            tauc = f"{tauc_val:.4f}" if tauc_val is not None else "N/A"
             acc  = f"{metrics.get('test_accuracy', 0):.4f}"
             feat = metrics.get('feature_set', '')
             print(f"{model_name:<30} {feat:<20} {cv:>12} {tauc:>10} {acc:>10}")

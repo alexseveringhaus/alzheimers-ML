@@ -221,6 +221,8 @@ pip install -r requirements.txt
 python main.py          # retrain all models and regenerate checkpoints/results
 ```
 
+> **Note:** The Research tab in the local dashboard (`results/metrics.json` and `results/plots/`) is populated by running `python main.py`. The deployed dashboard on Hugging Face Spaces includes pre-generated results and works without retraining.
+
 ### Run the API without Docker
 
 ```bash

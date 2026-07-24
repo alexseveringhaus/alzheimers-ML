@@ -86,7 +86,8 @@ def train_fold(
             early_stop_epoch = epoch
             break
 
-    model.load_state_dict(best_state)
+    if best_state is not None:
+        model.load_state_dict(best_state)
     return model, train_losses, val_losses, early_stop_epoch
 
 
