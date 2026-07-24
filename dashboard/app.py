@@ -122,6 +122,11 @@ tab_predict, tab_research = st.tabs(["🔬 Predict", "📊 Research"])
 
 # ── TAB 1: PREDICT ───────────────────────────────────────────────────────────
 with tab_predict:
+    # Session state for preventing double-submit
+    for _key, _default in [("predicting", False), ("pending_inputs", None), ("last_result", None), ("last_error", None)]:
+        if _key not in st.session_state:
+            st.session_state[_key] = _default
+
     st.title("AD vs CN Classification")
     if not _api_ready:
         st.info(
@@ -173,34 +178,55 @@ with tab_predict:
                 for roi in TAU_DEFAULTS
             }
 
-        submitted = st.form_submit_button("Run Prediction", use_container_width=True)
+        submitted = st.form_submit_button(
+            "⏳ Running..." if st.session_state.predicting else "Run Prediction",
+            disabled=st.session_state.predicting,
+            use_container_width=True,
+        )
 
-    if submitted:
+    # Step 1: save inputs and trigger a rerun so button renders as disabled
+    if submitted and not st.session_state.predicting:
+        st.session_state.predicting = True
+        st.session_state.pending_inputs = (amyloid_inputs, tau_inputs)
+        st.session_state.last_result = None
+        st.session_state.last_error = None
+        st.rerun()
+
+    # Step 2: make the request (button is now disabled in this rerun)
+    if st.session_state.predicting and st.session_state.pending_inputs is not None:
+        _amy_inputs, _tau_inputs = st.session_state.pending_inputs
         with st.spinner("Querying model…"):
             try:
                 response = requests.post(
                     f"{API_URL}/predict",
-                    json={"amyloid_suvrs": amyloid_inputs, "tau_suvrs": tau_inputs},
+                    json={"amyloid_suvrs": _amy_inputs, "tau_suvrs": _tau_inputs},
                     timeout=35,
                 )
                 response.raise_for_status()
-                result = response.json()
+                st.session_state.last_result = response.json()
             except requests.exceptions.Timeout:
-                st.error(
+                st.session_state.last_error = (
                     "The API is still waking up (free-tier cold start). "
                     "Wait 20–30 seconds and try again."
                 )
-                st.stop()
             except requests.exceptions.ConnectionError:
-                st.error(f"Could not connect to the API at {API_URL}. Is the server running?")
-                st.stop()
+                st.session_state.last_error = f"Could not connect to the API at {API_URL}. Is the server running?"
             except requests.exceptions.HTTPError as e:
-                st.error(f"API error: {e}\n\n{response.text}")
-                st.stop()
+                st.session_state.last_error = f"API error: {e}"
+            finally:
+                st.session_state.predicting = False
+                st.session_state.pending_inputs = None
+        st.rerun()
 
-        pred  = result["predicted_class"]
-        p_ad  = result["probability_ad"]
-        p_cn  = result["probability_cn"]
+    # Step 3: display error or result from session state
+    if st.session_state.last_error:
+        st.error(st.session_state.last_error)
+
+    if st.session_state.last_result:
+        result   = st.session_state.last_result
+        pred     = result["predicted_class"]
+        p_ad     = result["probability_ad"]
+        p_cn     = result["probability_cn"]
         contribs = result["shap_contributions"]
 
         st.divider()
