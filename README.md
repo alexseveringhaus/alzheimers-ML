@@ -37,7 +37,7 @@ All tabular models use a stratified 80/20 train/test split with 5-fold cross-val
 | Random Forest | Amyloid | 0.837 ± 0.081 | 0.966 | 92.0% |
 | Random Forest | Tau | 0.863 ± 0.070 | 0.987 | 97.3% |
 | Random Forest | Combined | 0.864 ± 0.071 | 0.980 | 94.7% |
-| Neural Network | Combined | 0.894 ± 0.060 | 0.997 | 96.0% |
+| Neural Network | Combined | 0.877 ± 0.096 | 0.993 | 96.0% |
 | Longitudinal LR | Baseline tau | 0.797 ± 0.167 | 0.875 | 81.3% |
 | Longitudinal LR | Tau slope | 0.698 ± 0.176 | 0.708 | 81.3% |
 | Longitudinal LR | Baseline + slope | 0.814 ± 0.128 | 0.854 | 81.3% |

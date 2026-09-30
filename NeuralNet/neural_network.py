@@ -1,3 +1,4 @@
+import copy
 import sys
 from pathlib import Path
 
@@ -78,7 +79,7 @@ def train_fold(
         if val_loss < best_val_loss:
             best_val_loss    = val_loss
             patience_counter = 0
-            best_state       = model.state_dict()
+            best_state       = copy.deepcopy(model.state_dict())
         else:
             patience_counter += 1
 
