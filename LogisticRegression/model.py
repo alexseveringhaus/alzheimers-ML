@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from sklearn.pipeline import Pipeline
 
 from data.data_extraction import extract_data, amy_rois, tau_rois
+from LogisticRegression.export_params import export_params
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 PLOTS_DIR   = RESULTS_DIR / "plots"
@@ -116,7 +117,11 @@ def model() -> dict:
             CKPT_DIR.mkdir(parents=True, exist_ok=True)
             joblib.dump(pipe, CKPT_DIR / "logreg_combined.joblib")
             X_train_scaled = pipe.named_steps["scaler"].transform(X_train)
-            np.save(CKPT_DIR / "shap_background.npy", X_train_scaled[:100])
+            # Linear SHAP only needs the background mean, so save one averaged row
+            # instead of per-subject ADNI rows (the checkpoint is public)
+            background = X_train_scaled[:100].mean(axis=0, keepdims=True)
+            np.save(CKPT_DIR / "shap_background.npy", background)
+            export_params(pipe, background)
 
     plot_feature_importance(coefficients)
 
