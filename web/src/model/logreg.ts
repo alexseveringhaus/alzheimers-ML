@@ -32,6 +32,11 @@ export interface Prediction {
   shap_contributions: ShapContribution[]
 }
 
+// The API rounds probabilities to 4 decimals and SHAP values to 6. Rounding
+// can be off by exactly half a unit, so allow one full unit in the last digit
+export const PROB_TOLERANCE = 1e-4
+export const SHAP_TOLERANCE = 1e-6
+
 const round = (value: number, digits: number) => Number(value.toFixed(digits))
 
 export function predict(params: ModelParams, amyloid: Suvrs, tau: Suvrs): Prediction {

@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest'
 
 import params from '../../../checkpoints/logreg_combined_params.json'
 import fixtures from './fixtures.json'
-import { defaultInputs, predict, type ModelParams } from './logreg'
+import {
+  defaultInputs,
+  predict,
+  PROB_TOLERANCE as PROB_TOL,
+  SHAP_TOLERANCE as SHAP_TOL,
+  type ModelParams,
+} from './logreg'
 
-// fixtures.json comes from scripts/make_parity_fixtures.py, which runs the API's
-// own predict(). The API rounds probabilities to 4 decimals and SHAP values to 6.
-const PROB_TOL = 5e-5
-const SHAP_TOL = 5e-7
+// fixtures.json comes from scripts/make_parity_fixtures.py, which runs the API's own predict()
 
 describe('browser logistic regression matches the API', () => {
   it('has fixtures for both classes', () => {
