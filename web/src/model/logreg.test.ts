@@ -40,7 +40,7 @@ describe('browser logistic regression matches the API', () => {
 describe('defaultInputs', () => {
   it('uses the training means, rounded to 4 decimals', () => {
     const { amyloid, tau } = defaultInputs(params as ModelParams)
-    // Same value as AMY_DEFAULTS in the old Streamlit dashboard
+    // Training-set mean of amyloid entorhinal SUVR
     expect(amyloid.CTX_ENTORHINAL_SUVR).toBe(0.9235)
     expect(Object.keys(amyloid)).toHaveLength(13)
     expect(Object.keys(tau)).toHaveLength(13)

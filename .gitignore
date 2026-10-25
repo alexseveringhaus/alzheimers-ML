@@ -28,15 +28,12 @@ env/
 .vscode/
 .idea/
 
-# Generated outputs (run main.py to reproduce)
-results/metrics.json
-
 # Checkpoints — commit small model artifacts needed by the API, exclude large NN weights
 checkpoints/*.pt
 !checkpoints/logreg_combined.joblib
 !checkpoints/shap_background.npy
 
-# Plots — commit so the dashboard and notebook can reference them without retraining
+# Plots — commit so the web app and notebook can reference them without retraining
 # (gitignore negation requires the parent not to be ignored)
 !results/plots/
 !results/plots/*.png

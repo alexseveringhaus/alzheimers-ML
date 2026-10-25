@@ -1,0 +1,89 @@
+{
+  "amyloid": {
+    "LogisticRegression": {
+      "feature_set": "amyloid",
+      "cv_auc_mean": 0.8252,
+      "cv_auc_std": 0.084,
+      "test_accuracy": 0.96,
+      "test_auc": 0.9815,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       0.98      0.97      0.98        63\n           1       0.85      0.92      0.88        12\n\n    accuracy                           0.96        75\n   macro avg       0.92      0.94      0.93        75\nweighted avg       0.96      0.96      0.96        75\n"
+    },
+    "RandomForest": {
+      "feature_set": "amyloid",
+      "cv_auc_mean": 0.8372,
+      "cv_auc_std": 0.0811,
+      "test_accuracy": 0.92,
+      "test_auc": 0.9656,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      0.94      0.95        63\n           1       0.71      0.83      0.77        12\n\n    accuracy                           0.92        75\n   macro avg       0.84      0.88      0.86        75\nweighted avg       0.93      0.92      0.92        75\n"
+    }
+  },
+  "tau": {
+    "LogisticRegression": {
+      "feature_set": "tau",
+      "cv_auc_mean": 0.8951,
+      "cv_auc_std": 0.0766,
+      "test_accuracy": 0.96,
+      "test_auc": 0.9921,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      0.98      0.98        63\n           1       0.91      0.83      0.87        12\n\n    accuracy                           0.96        75\n   macro avg       0.94      0.91      0.92        75\nweighted avg       0.96      0.96      0.96        75\n"
+    },
+    "RandomForest": {
+      "feature_set": "tau",
+      "cv_auc_mean": 0.8625,
+      "cv_auc_std": 0.0699,
+      "test_accuracy": 0.9733,
+      "test_auc": 0.9868,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      1.00      0.98        63\n           1       1.00      0.83      0.91        12\n\n    accuracy                           0.97        75\n   macro avg       0.98      0.92      0.95        75\nweighted avg       0.97      0.97      0.97        75\n"
+    }
+  },
+  "combined": {
+    "LogisticRegression": {
+      "feature_set": "combined",
+      "cv_auc_mean": 0.892,
+      "cv_auc_std": 0.0606,
+      "test_accuracy": 0.9867,
+      "test_auc": 1.0,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       1.00      0.98      0.99        63\n           1       0.92      1.00      0.96        12\n\n    accuracy                           0.99        75\n   macro avg       0.96      0.99      0.98        75\nweighted avg       0.99      0.99      0.99        75\n"
+    },
+    "RandomForest": {
+      "feature_set": "combined",
+      "cv_auc_mean": 0.8642,
+      "cv_auc_std": 0.0708,
+      "test_accuracy": 0.9467,
+      "test_auc": 0.9802,
+      "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      0.97      0.97        63\n           1       0.83      0.83      0.83        12\n\n    accuracy                           0.95        75\n   macro avg       0.90      0.90      0.90        75\nweighted avg       0.95      0.95      0.95        75\n"
+    }
+  },
+  "NeuralNetwork": {
+    "feature_set": "combined",
+    "cv_auc_mean": 0.877,
+    "cv_auc_std": 0.0958,
+    "test_accuracy": 0.96,
+    "test_auc": 0.9934
+  },
+  "LongitudinalTau": {
+    "Baseline tau": {
+      "model": "Baseline tau",
+      "feature_set": "Baseline tau",
+      "cv_auc_mean": 0.797,
+      "cv_auc_std": 0.1668,
+      "test_accuracy": 0.8125,
+      "test_auc": 0.875
+    },
+    "Tau slope": {
+      "model": "Tau slope",
+      "feature_set": "Tau slope",
+      "cv_auc_mean": 0.6978,
+      "cv_auc_std": 0.1764,
+      "test_accuracy": 0.8125,
+      "test_auc": 0.7083
+    },
+    "Baseline + slope": {
+      "model": "Baseline + slope",
+      "feature_set": "Baseline + slope",
+      "cv_auc_mean": 0.8141,
+      "cv_auc_std": 0.1276,
+      "test_accuracy": 0.8125,
+      "test_auc": 0.8542
+    }
+  }
+}

@@ -1,14 +1,14 @@
 # ML Research Project: Alzheimer's Disease Classification
 
-A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance (Alzheimer's Disease vs. Cognitively Normal). The best-performing model is deployed as a REST API with a live interactive dashboard.
+A personal project applying machine learning to Alzheimer's disease diagnosis using real-world neuroimaging data from the [ADNI](https://adni.loni.usc.edu/) (Alzheimer's Disease Neuroimaging Initiative) dataset. Built four progressively more complex models to explore how different ML approaches and data modalities (tabular ROI features vs. raw 3D PET scans) affect classification performance (Alzheimer's Disease vs. Cognitively Normal). The best-performing model is deployed as a REST API, with an interactive web app that also runs the model directly in the browser.
 
-**Tech stack:** Python · FastAPI · Streamlit · PyTorch · scikit-learn · SHAP · pandas · NumPy · nibabel · Docker
+**Tech stack:** Python · FastAPI · React · TypeScript · Vite · Vercel · PyTorch · scikit-learn · SHAP · pandas · NumPy · nibabel · Docker
 
 ## Live Demo
 
 | Service | URL |
 |---------|-----|
-| Interactive Dashboard | https://huggingface.co/spaces/alexsev01/alzheimers-dashboard |
+| Web App | TBD (Vercel) |
 | REST API | `https://alzheimers-ml.onrender.com` |
 | API Docs (Swagger) | `https://alzheimers-ml.onrender.com/docs` |
 
@@ -49,7 +49,7 @@ Alzheimers_ML/
 ├── main.py                         # Unified entrypoint — runs all models or a single one
 ├── requirements.txt
 ├── results.ipynb                   # Notebook: results table + plots rendered inline
-├── docker-compose.yml              # Runs API + dashboard together locally
+├── docker-compose.yml              # Runs the API locally
 │
 ├── api/                            # FastAPI inference service
 │   ├── main.py                     # /health, /rois, /predict endpoints
@@ -58,10 +58,15 @@ Alzheimers_ML/
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── dashboard/                      # Streamlit two-tab app
-│   ├── app.py                      # Tab 1: live prediction  Tab 2: research/methodology
-│   ├── requirements.txt
-│   └── Dockerfile
+├── web/                            # React + TypeScript web app (Vite, deployed on Vercel)
+│   └── src/
+│       ├── model/logreg.ts         # In-browser logistic regression + SHAP
+│       ├── model/logreg.test.ts    # Parity tests against API responses
+│       ├── tabs/                   # Predict, Live API, and Research tabs
+│       └── components/             # SUVR form, result card, SHAP chart
+│
+├── scripts/
+│   └── make_parity_fixtures.py     # Runs the API's predict() to generate test fixtures for web/
 │
 ├── data/
 │   ├── data_extraction.py          # Shared ETL: loads CSVs, merges on patient ID, creates binary label
@@ -71,7 +76,9 @@ Alzheimers_ML/
 │   └── Tau_PET_Images/
 │       └── nifti_output_with_RID/  # ~600 preprocessed 3D NIfTI scan files
 │
-├── LogisticRegression/model.py
+├── LogisticRegression/
+│   ├── model.py
+│   └── export_params.py            # Exports the combined model as JSON for the web app
 ├── NeuralNet/neural_network.py
 ├── LongitudinalTauBC/
 │   ├── data_extraction.py
@@ -81,11 +88,12 @@ Alzheimers_ML/
 │   └── cnn.py
 │
 ├── results/
-│   ├── metrics.json                # Saved accuracy, CV AUC, and test AUC for all models
+│   ├── metrics.json                # Accuracy, CV AUC, and test AUC for all models (used by the web app)
 │   └── plots/                      # Feature importance and training curve PNGs
 └── checkpoints/
     ├── logreg_combined.joblib      # Trained Pipeline (committed — used by API)
-    └── shap_background.npy         # SHAP background data (committed — used by API)
+    ├── shap_background.npy         # SHAP background mean, one row (committed — used by API)
+    └── logreg_combined_params.json # Scaler, coefficients, and SHAP mean (committed — used by web app)
 ```
 
 ## Usage
@@ -108,11 +116,11 @@ python 2D-CNN/cnn.py
 
 ## Model Details
 
-### Inference API + Dashboard
+### Inference API + Web App
 
-**Files:** [api/](api/) · [dashboard/](dashboard/)
+**Files:** [api/](api/) · [web/](web/)
 
-The combined Logistic Regression is served via a **FastAPI** REST API and an interactive **Streamlit** dashboard.
+The combined Logistic Regression is served two ways: by a **FastAPI** REST API on Render, and directly in the browser by a **React** web app on Vercel. The browser version gives instant results with no server, while the API shows the deployed inference path.
 
 **API endpoints:**
 - `GET /health` — service status and model name
@@ -121,9 +129,15 @@ The combined Logistic Regression is served via a **FastAPI** REST API and an int
 
 SHAP (`LinearExplainer`) explains each prediction by decomposing the model's output into individual ROI contributions, showing which brain regions drove the result toward AD or CN.
 
-**Dashboard tabs:**
-- **Predict** — SUVR input form → prediction card + SHAP waterfall chart
-- **Research** — model comparison table, feature importance plot, NN training curve
+**In-browser inference:**
+- `LogisticRegression/export_params.py` exports the scaler, coefficients, intercept, and SHAP background mean to JSON
+- The browser computes `P(AD) = sigmoid(coef · z + intercept)` and linear SHAP values `coef · (z − background mean)`, the same values `LinearExplainer` returns
+- Parity tests run 50 synthetic inputs through the API's own `predict()` and check that the browser matches it
+
+**Web app tabs:**
+- **Predict** — SUVR input form → prediction card + SHAP bar chart, updated as you type
+- **Live API** — sends the same inputs to the Render API; shows cold-start status, response time, raw JSON, and a server vs browser comparison
+- **Research** — model comparison table, descriptions of all four models, feature importance plot, NN training curve
 
 ---
 
@@ -202,14 +216,24 @@ Flatten → Linear(25600→128) → ReLU → Linear(128→2)
 
 ## Setup
 
-### Run the API + dashboard locally
+### Run the web app locally
+
+```bash
+cd web
+npm install
+npm run dev     # http://localhost:5173
+npm test        # browser model vs API parity tests
+```
+
+The app calls the deployed API by default. To use a local API instead, set `VITE_API_URL`, for example `VITE_API_URL=http://localhost:8000 npm run dev`.
+
+### Run the API locally
 
 ```bash
 docker-compose up
 ```
 
 - API:       http://localhost:8000
-- Dashboard: http://localhost:8501
 - API docs:  http://localhost:8000/docs
 
 ### Retrain the models (requires ADNI data access)
@@ -221,7 +245,7 @@ pip install -r requirements.txt
 python main.py          # retrain all models and regenerate checkpoints/results
 ```
 
-> **Note:** The Research tab in the local dashboard (`results/metrics.json` and `results/plots/`) is populated by running `python main.py`. The deployed dashboard on Hugging Face Spaces includes pre-generated results and works without retraining.
+> **Note:** `results/metrics.json`, `results/plots/`, and the checkpoints are committed, so the web app and API work without retraining. Retraining the logistic regression also rewrites `checkpoints/logreg_combined_params.json`. Then run `python scripts/make_parity_fixtures.py` to refresh the web app's parity fixtures.
 
 ### Run the API without Docker
 
