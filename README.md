@@ -115,7 +115,7 @@ python 2D-CNN/cnn.py
 The combined Logistic Regression is served via a **FastAPI** REST API and an interactive **Streamlit** dashboard.
 
 **API endpoints:**
-- `GET /health` — model name and test AUC
+- `GET /health` — service status and model name
 - `GET /rois` — list of the 26 expected ROI fields
 - `POST /predict` — accepts `amyloid_suvrs` + `tau_suvrs` dicts; returns predicted class, probabilities, and 26 per-ROI **SHAP** values sorted by magnitude
 
