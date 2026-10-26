@@ -8,7 +8,7 @@ A personal project applying machine learning to Alzheimer's disease diagnosis us
 
 | Service | URL |
 |---------|-----|
-| Web App | TBD (Vercel) |
+| Web App | https://alzheimers-ml.vercel.app |
 | REST API | `https://alzheimers-ml.onrender.com` |
 | API Docs (Swagger) | `https://alzheimers-ml.onrender.com/docs` |
 
