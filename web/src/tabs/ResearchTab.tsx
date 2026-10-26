@@ -1,106 +1,114 @@
 import featureImportanceUrl from '../../../results/plots/logreg_feature_importance.png'
 import trainingCurveUrl from '../../../results/plots/nn_training_curve.png'
 import metrics from '../../../results/metrics.json'
-import { collectMetricRows } from '../metrics'
+import { collectMetricRows, type MetricsRow } from '../metrics'
 
 const rows = collectMetricRows(metrics)
+const find = (model: string, featureSet: string) => rows.find((r) => r.model === model && r.featureSet === featureSet)
+const deployed = rows.find((r) => r.deployed)
+const auc = (row?: MetricsRow) => row?.cvAucMean?.toFixed(3) ?? 'N/A'
+const cnn = rows.find((r) => r.model === '2D CNN')
+
+const MODELS = [
+  {
+    name: 'Logistic regression and random forest',
+    text: 'Baselines on tabular region features, each trained on amyloid only, tau only, and both. The scaler is fit inside every cross-validation fold.',
+    result: `Best: combined logistic regression, ${auc(deployed)} CV AUC`,
+  },
+  {
+    name: 'Neural network',
+    text: 'A three-layer network on all 26 features with dropout, L2 regularization, and early stopping that restores the best weights.',
+    result: `${auc(find('Neural network', 'Combined'))} CV AUC`,
+  },
+  {
+    name: 'Longitudinal model',
+    text: 'Uses tau scans from three or more visits. For each region it measures the starting level and how fast tau accumulates over time.',
+    result: `${auc(find('Longitudinal LR', 'Baseline + slope'))} CV AUC with baseline and slope`,
+  },
+  {
+    name: '2D CNN on PET slices',
+    text: 'Learns straight from about 600 raw tau PET scans, cut into 17,000 slices. Slices from one person never appear in both training and test data.',
+    result: `${cnn?.testAccuracy ?? 'N/A'} slice-level accuracy`,
+  },
+]
 
 export function ResearchTab() {
   return (
     <>
-      <section>
-        <h2>About the model</h2>
-        <p>
-          The API serves a <strong>Logistic Regression</strong> trained on combined amyloid + tau PET SUVR features
-          from the <a href="https://adni.loni.usc.edu/" target="_blank" rel="noreferrer">ADNI</a> dataset. The binary
-          classification task is Cognitively Normal (CN = 0) vs Alzheimer's Disease (AD = 1); MCI subjects are
-          excluded for a cleaner signal.
-        </p>
-        <p><strong>Training approach:</strong></p>
-        <ul>
-          <li>13 amyloid ROI SUVRs + 13 tau ROI SUVRs = 26 input features</li>
-          <li>
-            <code>StandardScaler</code> normalization inside an <code>sklearn.Pipeline</code> (fit on training data
-            only — no leakage)
-          </li>
-          <li>Stratified 80/20 train/test split; 5-fold cross-validation on the training portion</li>
-          <li>
-            Model selection: the combined-feature Logistic Regression achieved Test AUC = 1.00 and CV AUC = 0.892 ±
-            0.061, outperforming random forest and matching the neural network while remaining fully interpretable via
-            SHAP
-          </li>
-        </ul>
-      </section>
+      <div className="research-intro">
+        <header className="page-intro">
+          <h2>How the model was built</h2>
+          <p className="lede">
+            The deployed model is a logistic regression on amyloid and tau PET measurements from the{' '}
+            <a href="https://adni.loni.usc.edu/" target="_blank" rel="noreferrer">ADNI</a> study. It separates cognitively
+            normal people from people with Alzheimer's disease. People with mild cognitive impairment were left out for a
+            cleaner signal.
+          </p>
+        </header>
+        <section className="panel">
+          <dl className="facts">
+            <div><dt>Inputs</dt><dd>26 SUVRs (13 regions × 2 tracers)</dd></div>
+            <div><dt>Evaluation</dt><dd>80/20 split, 5-fold cross-validation</dd></div>
+            <div><dt>Cross-validated AUC</dt><dd>{deployed?.cvAuc ?? 'N/A'}</dd></div>
+            <div><dt>Explanations</dt><dd>SHAP, for each prediction</dd></div>
+          </dl>
+        </section>
+      </div>
 
-      <section>
+      <section className="panel">
         <h2>Model comparison</h2>
+        <p className="muted small">
+          The held-out test set has 75 subjects (12 AD), so test AUC is noisy. Cross-validated AUC is the more reliable
+          estimate.
+        </p>
         <div className="table-scroll">
-          <table>
+          <table className="metrics-table">
             <thead>
-              <tr><th>Model</th><th>Feature set</th><th>CV AUC</th><th>Test AUC</th><th>Test accuracy</th></tr>
+              <tr>
+                <th scope="col">Model</th><th scope="col">Features</th>
+                <th scope="col" className="num">CV AUC</th><th scope="col" className="num">Test AUC</th>
+                <th scope="col" className="num">Test accuracy</th>
+              </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td>{r.model}</td><td>{r.featureSet}</td><td>{r.cvAuc}</td><td>{r.testAuc}</td><td>{r.testAccuracy}</td>
+              {rows.map((r) => (
+                <tr key={`${r.model}-${r.featureSet}`} className={r.deployed ? 'deployed' : undefined}>
+                  <th scope="row">{r.model}{r.deployed && <span className="tag">Deployed</span>}</th>
+                  <td>{r.featureSet}</td>
+                  <td className="num">{r.cvAuc}</td>
+                  <td className="num">{r.testAuc}</td>
+                  <td className="num">{r.testAccuracy}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="muted small">
-          CV AUC is the mean ± standard deviation over 5 folds of the training data. The held-out test set has 75
-          subjects (12 AD), so test AUC is noisy; CV AUC is the more reliable estimate.
-        </p>
       </section>
 
-      <section>
-        <h2>The four models</h2>
-        <h3>Logistic Regression + Random Forest</h3>
-        <p>
-          Baseline classifiers on tabular ROI features. The same pipeline runs on amyloid-only, tau-only, and combined
-          features, with a <code>StandardScaler</code> fit inside each cross-validation fold. Logistic regression
-          coefficients serve as a feature importance measure.
-        </p>
-        <h3>Feedforward Neural Network</h3>
-        <p>
-          A 3-layer MLP on the combined features: Linear(64) → ReLU → Dropout(0.3) → Linear(32) → ReLU → Linear(2).
-          It uses L2 regularization (Adam <code>weight_decay=1e-5</code>) and early stopping with patience 30, which
-          restores the best weights.
-        </p>
-        <h3>Longitudinal Logistic Regression</h3>
-        <p>
-          Uses multi-visit tau data. For each subject and region, it computes the baseline value and the accumulation
-          slope over time, using only subjects with at least 3 timepoints. Baseline-only, slope-only, and combined
-          feature sets are evaluated separately.
-        </p>
-        <h3>2D CNN on PET image slices</h3>
-        <p>
-          Learns directly from raw 3D tau PET volumes. Axial slices 30–65 of about 600 scans give about 17,000 2D
-          samples, each z-score normalized. The train/test split is by subject, so slices from one person never appear
-          in both. Three convolution + pooling blocks feed two linear layers; it reports slice-level accuracy.
-        </p>
-      </section>
+      <div className="model-grid">
+        {MODELS.map((m) => (
+          <section className="panel model-card" key={m.name}>
+            <h3>{m.name}</h3>
+            <p>{m.text}</p>
+            <p className="model-result">{m.result}</p>
+          </section>
+        ))}
+      </div>
 
-      <section>
-        <h2>Logistic regression feature importance</h2>
-        <p className="muted small">
-          Coefficients across amyloid-only, tau-only, and combined feature sets. Red = positive weight (higher SUVR →
-          more likely AD); blue = negative weight.
-        </p>
-        <a href={featureImportanceUrl} target="_blank" rel="noreferrer" title="Open full size">
-          <img src={featureImportanceUrl} alt="Bar charts of logistic regression coefficients for each brain region, for amyloid, tau, and combined features" />
-        </a>
-        <p className="muted small">Select the image to open it at full size.</p>
-      </section>
-
-      <section>
-        <h2>Neural network training curve</h2>
-        <p className="muted small">Train vs validation loss with early stopping (red dashed line).</p>
-        <a href={trainingCurveUrl} target="_blank" rel="noreferrer" title="Open full size">
-          <img src={trainingCurveUrl} alt="Line chart of neural network training and validation loss by epoch" className="narrow-image" />
-        </a>
-      </section>
+      <div className="figures">
+        <figure>
+          <a href={featureImportanceUrl} target="_blank" rel="noreferrer" title="Open full size">
+            <img src={featureImportanceUrl} alt="Logistic regression coefficients for each brain region, for amyloid, tau, and combined features" />
+          </a>
+          <figcaption>Logistic regression coefficients. Red bars raise the chance of AD; blue bars lower it. Select the image to open it at full size.</figcaption>
+        </figure>
+        <figure>
+          <a href={trainingCurveUrl} target="_blank" rel="noreferrer" title="Open full size">
+            <img src={trainingCurveUrl} alt="Neural network training and validation loss by epoch" />
+          </a>
+          <figcaption>Neural network loss by epoch. The dashed line marks where early stopping ended training.</figcaption>
+        </figure>
+      </div>
     </>
   )
 }

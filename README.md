@@ -14,7 +14,7 @@ A personal project applying machine learning to Alzheimer's disease diagnosis us
 
 ## Motivation
 
-Alzheimer's disease affects over 55 million people worldwide and currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest and personal connection to the problem - using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that I'm passionate about.
+Dementia affects over 55 million people worldwide, and Alzheimer's disease, its most common cause, currently has no cure. Early and accurate diagnosis is critical for treatment planning and clinical trial enrollment. This project was driven by a genuine interest and personal connection to the problem — using ML on real clinical imaging data felt like a meaningful way to develop applied ML skills while working on something that I'm passionate about.
 
 ## Models
 
@@ -66,7 +66,7 @@ Alzheimers_ML/
 │       ├── model/logreg.ts         # In-browser logistic regression + SHAP
 │       ├── model/logreg.test.ts    # Parity tests against API responses
 │       ├── tabs/                   # Predict, Live API, and Research tabs
-│       └── components/             # SUVR form, result card, SHAP chart
+│       └── components/             # Region table, verdict, brain map, influence bars
 │
 ├── scripts/
 │   └── make_parity_fixtures.py     # Runs the API's predict() to generate test fixtures for web/
@@ -138,8 +138,8 @@ SHAP (`LinearExplainer`) explains each prediction by decomposing the model's out
 - Parity tests run 50 synthetic inputs through the API's own `predict()` and check that the browser matches it
 
 **Web app tabs:**
-- **Predict** — SUVR input form → prediction card + SHAP bar chart, updated as you type
-- **Live API** — sends the same inputs to the Render API; shows cold-start status, response time, raw JSON, and a server vs browser comparison
+- **Predict** — one table row per region with amyloid and tau side by side → verdict on a heat scale, a brain map shaded by each region's SHAP influence, and ranked influence bars, all updated as you type or scroll a value
+- **Live API** — sends the same inputs to the Render API; shows cold-start status, a timing chart (cold start, request, in-browser), raw JSON, and a server vs browser comparison
 - **Research** — model comparison table, descriptions of all four models, feature importance plot, NN training curve
 
 ---

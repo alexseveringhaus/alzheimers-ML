@@ -1,17 +1,17 @@
 const ROI_DISPLAY: Record<string, string> = {
-  ROSTRALANTERIORCINGULATE: 'Rostral Anterior Cingulate',
-  CAUDALANTERIORCINGULATE: 'Caudal Anterior Cingulate',
-  MIDDLETEMPORAL: 'Middle Temporal',
-  INFERIORTEMPORAL: 'Inferior Temporal',
-  POSTERIORCINGULATE: 'Posterior Cingulate',
+  ROSTRALANTERIORCINGULATE: 'Rostral anterior cingulate',
+  CAUDALANTERIORCINGULATE: 'Caudal anterior cingulate',
+  MIDDLETEMPORAL: 'Middle temporal',
+  INFERIORTEMPORAL: 'Inferior temporal',
+  POSTERIORCINGULATE: 'Posterior cingulate',
   PRECUNEUS: 'Precuneus',
-  SUPERIORFRONTAL: 'Superior Frontal',
-  SUPERIORPARIETAL: 'Superior Parietal',
-  LATERALOCCIPITAL: 'Lateral Occipital',
-  FRONTALPOLE: 'Frontal Pole',
+  SUPERIORFRONTAL: 'Superior frontal',
+  SUPERIORPARIETAL: 'Superior parietal',
+  LATERALOCCIPITAL: 'Lateral occipital',
+  FRONTALPOLE: 'Frontal pole',
   ENTORHINAL: 'Entorhinal',
   FUSIFORM: 'Fusiform',
-  INFERIORPARIETAL: 'Inferior Parietal',
+  INFERIORPARIETAL: 'Inferior parietal',
 }
 
 /**
@@ -29,6 +29,18 @@ export function prettyRoi(name: string): string {
     name = name.slice(0, -4)
   }
   const key = name.replace('CTX_', '').replace('_SUVR', '')
-  const fallback = key.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+  const words = key.replaceAll('_', ' ').toLowerCase()
+  const fallback = words.charAt(0).toUpperCase() + words.slice(1)
   return (ROI_DISPLAY[key] ?? fallback) + suffix
+}
+
+/** Region key used by the brain map: CTX_ENTORHINAL_SUVR(_amy|_tau) -> ENTORHINAL */
+export function regionKey(name: string): string {
+  return name.replace(/_(amy|tau)$/, '').replace('CTX_', '').replace('_SUVR', '')
+}
+
+/** Sentence-style feature label: CTX_ENTORHINAL_SUVR_tau -> "Entorhinal tau" */
+export function featureLabel(name: string): string {
+  const tracer = name.endsWith('_amy') ? ' amyloid' : name.endsWith('_tau') ? ' tau' : ''
+  return prettyRoi(name.replace(/_(amy|tau)$/, '')) + tracer
 }
