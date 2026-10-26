@@ -41,6 +41,9 @@ All tabular models use a stratified 80/20 train/test split with 5-fold cross-val
 | Longitudinal LR | Baseline tau | 0.797 ± 0.167 | 0.875 | 81.3% |
 | Longitudinal LR | Tau slope | 0.698 ± 0.176 | 0.708 | 81.3% |
 | Longitudinal LR | Baseline + slope | 0.814 ± 0.128 | 0.854 | 81.3% |
+| 2D CNN | PET image slices | N/A | N/A | 82.3% (slice-level) |
+
+The CNN uses a single subject-level train/test split and reports accuracy per 2D slice, so it has no CV AUC or test AUC.
 
 ## Project Structure
 

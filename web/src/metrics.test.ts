@@ -10,6 +10,7 @@ describe('collectMetricRows', () => {
     expect(models).toContain('NeuralNetwork')          // flat entry
     expect(models).toContain('LogisticRegression')     // nested under feature set
     expect(models).toContain('Baseline + slope')       // nested under LongitudinalTau
+    expect(models).toContain('CNN')                    // flat, with no AUC values
   })
 
   it('formats metrics and handles missing AUC', () => {

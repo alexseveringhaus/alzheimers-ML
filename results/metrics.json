@@ -85,5 +85,12 @@
       "test_accuracy": 0.8125,
       "test_auc": 0.8542
     }
+  },
+  "CNN": {
+    "feature_set": "2D PET slices (slice-level accuracy)",
+    "cv_auc_mean": null,
+    "cv_auc_std": null,
+    "test_accuracy": 0.8235,
+    "test_auc": null
   }
 }
